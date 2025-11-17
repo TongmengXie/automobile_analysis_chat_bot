@@ -1,0 +1,12 @@
+body {
+  font-family: sans-serif;
+  margin: 20px;
+}
+
+#chat {
+  border: 1px solid #ddd;
+  padding: 10px;
+  height: 300px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
