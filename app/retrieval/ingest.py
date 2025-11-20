@@ -1,5 +1,5 @@
-import pdfplumber
 import os
+import pdfplumber
 import glob
 import re
 
@@ -26,10 +26,10 @@ def extract_metadata(file_path: str):
     return company, year
 
 
-def ingest_all_pdfs():
+def ingest_all_pdfs(single_pdf_path: str | None = None):
     print("Scanning for PDF reports...")
 
-    pdf_paths = glob.glob("data/*/*.pdf")
+    pdf_paths = [single_pdf_path] if single_pdf_path else glob.glob("data/*/*.pdf")
 
     print(f"Found {len(pdf_paths)} PDF files.")
 
@@ -55,34 +55,21 @@ def ingest_all_pdfs():
 
         pages = [p for p in pages if p]
 
-        text = "\n\n".join(pages)
+        all_chunks = []
+        for page_text in pages:
+            chunks = splitter.split_text(page_text)
+            all_chunks.extend(chunks)
 
-        chunks = splitter.split_text(text)
-        print(f"Created {len(chunks)} chunks")
+        print(f"   → Extracted {len(all_chunks)} text chunks")
 
-        BATCH = 128
-        for i in range(0, len(chunks), BATCH):
-            batch = chunks[i:i+BATCH]
-            vectors = embeddings.embed_documents(batch)
+        if not all_chunks:
+            print("   → WARNING: No text extracted")
+            continue
 
-            coll.add(
-                documents=batch,
-                embeddings=vectors,
-                metadatas=[
-                    {
-                        "company": company,
-                        "year": year,
-                        "source": pdf_path,
-                    }
-                    for _ in batch
-                ],
-                ids=[str(hash(company + str(year) + chunk)) for chunk in batch],
-            )
+        coll.add(
+            documents=all_chunks,
+            metadatas=[{"company": company, "year": year, "source": os.path.basename(pdf_path)}] * len(all_chunks),
+            ids=[f"{company}-{year}-{i}" for i in range(len(all_chunks))]
+        )
 
-        print(f"Completed ingestion for {pdf_path}")
-
-    print("All PDFs ingested successfully!")
-    
-
-if __name__ == "__main__":
-    ingest_all_pdfs()
+    print("\nIngestion complete.")
