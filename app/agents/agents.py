@@ -17,7 +17,7 @@ class FinancialReportAgent:
         self.answer_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
         self.conversation_history: List[Tuple[str, str]] = []
-        self.max_history = 3
+        self.max_history = 5
 
         self.judge_system = (
             "You decide if report context answers the user's question. Respond with USE_LOCAL"
